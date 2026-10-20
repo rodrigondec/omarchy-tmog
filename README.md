@@ -35,8 +35,8 @@ TMOG app (Setup → Plugins, or the widget's entry in `shell.json`).
 - Optional: `nvidia-smi` for GPU figures (the GPU row is empty without it)
 - Optional: the TMOG Task Manager app with a `tmog.desktop` entry, for the open button
 
-The plugin reads `/proc` and `/sys` only. It never uses sudo and does not write
-to your configuration.
+The plugin reads `/proc` and `/sys` only. It never asks for elevated privileges and does
+not write to your configuration.
 
 ## Credits
 
