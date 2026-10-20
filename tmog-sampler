@@ -1,0 +1,176 @@
+#!/usr/bin/python3
+"""Emit one JSON line per second with the figures TMOG's Summary page shows.
+
+Runs only while the panel is open; stops when stdout closes."""
+import json, os, re, subprocess, sys, time
+
+NCPU = os.cpu_count() or 1
+TICKS = os.sysconf("SC_CLK_TCK")
+DISK_RE = re.compile(r"^(nvme\d+n\d+|sd[a-z]+|vd[a-z]+|mmcblk\d+)$")
+TOP = int(sys.argv[1]) if len(sys.argv) > 1 else 10
+
+
+def read(path):
+    try:
+        with open(path) as f:
+            return f.read()
+    except OSError:
+        return ""
+
+
+def cpu_times():
+    """(total, idle) for the whole machine plus a list per logical CPU."""
+    rows = []
+    for line in read("/proc/stat").splitlines():
+        if not line.startswith("cpu"):
+            break
+        v = [int(x) for x in line.split()[1:]]
+        rows.append((sum(v[:8]), v[3] + v[4]))
+    return rows[0], rows[1:]
+
+
+def freq_mhz():
+    vals = []
+    for line in read("/proc/cpuinfo").splitlines():
+        if line.startswith("cpu MHz"):
+            vals.append(float(line.split(":")[1]))
+    return sum(vals) / len(vals) if vals else 0
+
+
+def cpu_temp():
+    base = "/sys/class/hwmon"
+    try:
+        for h in sorted(os.listdir(base)):
+            name = read(f"{base}/{h}/name").strip()
+            if name in ("coretemp", "k10temp", "zenpower"):
+                best = None
+                for i in range(1, 12):
+                    label = read(f"{base}/{h}/temp{i}_label").strip()
+                    raw = read(f"{base}/{h}/temp{i}_input").strip()
+                    if raw and (label.startswith(("Package", "Tctl", "Tdie")) or best is None):
+                        best = int(raw) / 1000
+                        if label.startswith(("Package", "Tctl", "Tdie")):
+                            break
+                return best
+    except OSError:
+        pass
+    return None
+
+
+def memory():
+    m = {}
+    for line in read("/proc/meminfo").splitlines():
+        k, v = line.split(":")
+        m[k] = int(v.split()[0]) * 1024
+    total, avail = m.get("MemTotal", 0), m.get("MemAvailable", 0)
+    return {"total": total, "used": total - avail, "available": avail,
+            "cached": m.get("Cached", 0) + m.get("Buffers", 0),
+            "swapTotal": m.get("SwapTotal", 0),
+            "swapUsed": m.get("SwapTotal", 0) - m.get("SwapFree", 0)}
+
+
+def pressure():
+    out = {}
+    for res in ("cpu", "memory", "io"):
+        for line in read(f"/proc/pressure/{res}").splitlines():
+            kind, *rest = line.split()
+            d = dict(p.split("=") for p in rest)
+            out[f"{res}_{kind}"] = float(d.get("avg10", 0))
+    return out
+
+
+def net_bytes():
+    rx = tx = 0
+    for line in read("/proc/net/dev").splitlines()[2:]:
+        name, data = line.split(":")
+        if name.strip() == "lo" or name.strip().startswith(("veth", "docker", "br-")):
+            continue
+        f = data.split()
+        rx += int(f[0]); tx += int(f[8])
+    return rx, tx
+
+
+def disk_bytes():
+    r = w = 0
+    for line in read("/proc/diskstats").splitlines():
+        f = line.split()
+        if len(f) > 9 and DISK_RE.match(f[2]):
+            r += int(f[5]) * 512; w += int(f[9]) * 512
+    return r, w
+
+
+def procs():
+    out = {}
+    try:
+        pids = [p for p in os.listdir("/proc") if p.isdigit()]
+    except OSError:
+        return out
+    for pid in pids:
+        raw = read(f"/proc/{pid}/stat")
+        if not raw:
+            continue
+        head, _, tail = raw.rpartition(")")
+        name = head.split("(", 1)[1] if "(" in head else pid
+        f = tail.split()
+        try:
+            out[pid] = (name, int(f[11]) + int(f[12]), int(f[21]) * 4096)
+        except (IndexError, ValueError):
+            continue
+    return out
+
+
+gpu = {}
+gpu_at = 0.0
+
+
+def read_gpu():
+    global gpu, gpu_at
+    now = time.time()
+    if now - gpu_at < 2:
+        return gpu
+    gpu_at = now
+    try:
+        o = subprocess.run(
+            ["nvidia-smi", "--query-gpu=name,utilization.gpu,power.draw,temperature.gpu,clocks.sm,memory.used,memory.total",
+             "--format=csv,noheader,nounits"], capture_output=True, text=True, timeout=2).stdout.strip()
+        n, u, p, t, c, mu, mt = [x.strip() for x in o.splitlines()[0].split(",")]
+        num = lambda s: float(s) if s.replace(".", "", 1).isdigit() else None
+        gpu = {"name": n, "util": num(u), "power": num(p), "temp": num(t), "clock": num(c),
+               "memUsed": (num(mu) or 0) * 1048576, "memTotal": (num(mt) or 0) * 1048576}
+    except Exception:
+        gpu = {}
+    return gpu
+
+
+(pt, pi), pcores = cpu_times()
+prx, ptx = net_bytes()
+pdr, pdw = disk_bytes()
+pp = procs()
+last = time.time()
+delay = 0.15  # short baseline so the panel gets its first sample right away
+while True:
+    time.sleep(delay)
+    delay = 1.0
+    now = time.time(); dt = max(now - last, 0.001); last = now
+    (t, i), cores = cpu_times()
+    cpu = 100 * (1 - (i - pi) / max(t - pt, 1)); pt, pi = t, i
+    percore = [round(100 * (1 - (ci - pci) / max(ct - pct, 1)), 1)
+               for (ct, ci), (pct, pci) in zip(cores, pcores)]
+    pcores = cores
+    rx, tx = net_bytes(); dr, dw = disk_bytes()
+    cp = procs()
+    top = []
+    for pid, (name, cputime, rss) in cp.items():
+        old = pp.get(pid)
+        pct = 100 * (cputime - old[1]) / TICKS / dt / NCPU if old else 0
+        top.append({"pid": int(pid), "name": name, "cpu": round(pct, 1), "mem": rss})
+    top.sort(key=lambda p: (-p["cpu"], -p["mem"]))
+    snap = {"cpu": round(cpu, 1), "cores": percore, "mhz": freq_mhz(), "temp": cpu_temp(), "mem": memory(),
+            "pressure": pressure(), "down": (rx - prx) / dt, "up": (tx - ptx) / dt,
+            "diskRead": (dr - pdr) / dt, "diskWrite": (dw - pdw) / dt,
+            "gpu": read_gpu(), "procCount": len(cp), "processes": top[:TOP]}
+    prx, ptx, pdr, pdw, pp = rx, tx, dr, dw, cp
+    try:
+        print(json.dumps(snap), flush=True)
+    except BrokenPipeError:
+        break

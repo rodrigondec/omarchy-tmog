@@ -1,0 +1,25 @@
+{
+  "schemaVersion": 1,
+  "id": "io.github.rodrigondec.tmog",
+  "name": "TMOG",
+  "version": "0.1.0",
+  "author": "rodrigondec",
+  "license": "MIT",
+  "description": "A bar glance at what TMOG Task Manager shows: CPU, clock, temperature, GPU, top processes, memory, pressure, network and disk",
+  "kinds": ["bar-widget"],
+  "entryPoints": { "barWidget": "Panel.qml" },
+  "barWidget": {
+    "displayName": "TMOG",
+    "description": "TMOG-style summary panel: SYS gauges, CPU overview, top processes, memory, system pressure, network, disk and GPU.",
+    "category": "System",
+    "aliases": ["tmog", "task-manager", "taskmanager"],
+    "allowMultiple": false,
+    "defaultSection": "right",
+    "defaults": { "historySamples": 60, "processCount": 10, "openTmogOnMiddleClick": true },
+    "schema": [
+      { "key": "historySamples", "type": "integer", "label": "History samples", "min": 20, "max": 240, "step": 10, "defaultValue": 60 },
+      { "key": "processCount", "type": "integer", "label": "Top processes", "min": 3, "max": 25, "step": 1, "defaultValue": 10 },
+      { "key": "openTmogOnMiddleClick", "type": "boolean", "label": "Middle click opens TMOG app", "defaultValue": true }
+    ]
+  }
+}
