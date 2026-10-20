@@ -1,13 +1,13 @@
 # TMOG
 
-A bar glance at what the TMOG Task Manager shows: SYS gauges (CPU, clock,
+A bar glance at what [TMOG](https://tmog.org) shows: SYS gauges (CPU, clock,
 temperature, GPU), CPU overview, top processes, memory, system pressure,
 network, disk and GPU.
 
 ![TMOG panel](preview.png)
 
 Click the bar icon to open the panel. `e` toggles a per-core CPU view, Esc closes.
-The **Abrir TMOG** button focuses the TMOG app if it is running, or starts it.
+The **open TMOG** button focuses the TMOG app if it is running, or starts it.
 A small Python sampler runs only while the panel is open.
 
 ## Install
@@ -37,6 +37,19 @@ TMOG app (Setup → Plugins, or the widget's entry in `shell.json`).
 
 The plugin reads `/proc` and `/sys` only. It never uses sudo and does not write
 to your configuration.
+
+## Credits
+
+This plugin is inspired by [TMOG (Task Manager OG)](https://tmog.org), the
+cross-platform task manager created by Dave Plummer, the original author of the
+Windows Task Manager. Thank you, Dave, for TMOG and for the layout this widget
+borrows from: the SYS gauges, CPU overview, top processes, memory, system
+pressure, network, disk and GPU summary.
+
+This is an independent, unofficial project. It is not affiliated with or
+endorsed by Dave Plummer or TMOG, and it contains no TMOG code or assets. It
+reads `/proc` and `/sys` itself. To use the real app, install it from
+[tmog.org](https://tmog.org).
 
 ## License
 

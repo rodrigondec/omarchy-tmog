@@ -148,7 +148,7 @@ Panel {
             Text {
               id: openLabel
               anchors.centerIn: parent
-              text: "Abrir TMOG"
+              text: "open TMOG"
               color: root.foreground
               font.family: root.family
               font.pixelSize: Style.font.bodySmall
