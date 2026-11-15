@@ -23,7 +23,8 @@ Panel {
   readonly property color foreground: Color.popups.text
   readonly property color accent: Color.accent
   readonly property color urgent: Color.urgent
-  readonly property color dim: Color.muted
+  // Color.muted is ~1.9:1 on dark themes; derive from the text colour for >=4.5:1.
+  readonly property color dim: Util.alpha(Color.popups.text, 0.75)
   readonly property int historySamples: Math.max(20, Math.min(240,
     Math.round(Number(setting("historySamples", 60)) || 60)))
   readonly property int processCount: Math.max(3, Math.min(25,
@@ -131,6 +132,7 @@ Panel {
           width: parent.width
           Text {
             text: "TMOG"
+            font.letterSpacing: 0.6
             color: root.accent
             font.family: root.family
             font.pixelSize: Style.font.title
@@ -142,7 +144,7 @@ Panel {
             width: openLabel.implicitWidth + Style.space(16)
             height: openLabel.implicitHeight + Style.space(6)
             radius: Style.cornerRadius
-            color: openArea.containsMouse ? Util.alpha(root.accent, 0.25) : Util.alpha(root.foreground, 0.08)
+            color: openArea.containsMouse ? Util.alpha(root.accent, 0.25) : Util.alpha(root.foreground, 0.16)
             border.width: 1
             border.color: Util.alpha(root.accent, 0.5)
             Text {
@@ -151,7 +153,7 @@ Panel {
               text: "open TMOG"
               color: root.foreground
               font.family: root.family
-              font.pixelSize: Style.font.bodySmall
+              font.pixelSize: Style.font.body
             }
             MouseArea {
               id: openArea
@@ -170,7 +172,7 @@ Panel {
             text: root.expanded ? "e  collapse" : "e  per-core"
             color: root.dim
             font.family: root.family
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Style.font.body
           }
         }
 
@@ -200,13 +202,13 @@ Panel {
                   text: modelData.k
                   color: root.dim
                   font.family: root.family
-                  font.pixelSize: Style.font.bodySmall
+                  font.pixelSize: Style.font.body
                 }
                 Item {
                   width: Style.space(14)
                   height: parent.height - Style.space(36)
                   anchors.horizontalCenter: parent.horizontalCenter
-                  Rectangle { anchors.fill: parent; color: Util.alpha(root.foreground, 0.08); radius: 2 }
+                  Rectangle { anchors.fill: parent; color: Util.alpha(root.foreground, 0.16); radius: 2 }
                   Rectangle {
                     width: parent.width
                     height: parent.height * Math.max(0, Math.min(100, modelData.v)) / 100
@@ -220,7 +222,7 @@ Panel {
                   text: modelData.t
                   color: root.foreground
                   font.family: root.family
-                  font.pixelSize: Style.font.bodySmall
+                  font.pixelSize: Style.font.body
                 }
               }
             }
@@ -234,9 +236,10 @@ Panel {
               width: parent.width
               Text {
                 text: "CPU OVERVIEW"
+                font.letterSpacing: 0.6
                 color: root.dim
                 font.family: root.family
-                font.pixelSize: Style.font.bodySmall
+                font.pixelSize: Style.font.body
               }
               Item { width: parent.width - cpuNow.implicitWidth - 110; height: 1 }
               Text {
@@ -244,7 +247,7 @@ Panel {
                 text: root.snap ? root.snap.cpu.toFixed(1) + "%" : "—"
                 color: root.load(root.accent, root.snap ? root.snap.cpu : 0)
                 font.family: root.family
-                font.pixelSize: Style.font.body
+                font.pixelSize: Style.font.subtitle
               }
             }
             Sparkline {
@@ -272,7 +275,7 @@ Panel {
                 text: "CPU " + index
                 color: root.dim
                 font.family: root.family
-                font.pixelSize: Style.font.bodySmall
+                font.pixelSize: Style.font.body
               }
               Sparkline {
                 width: parent.width
@@ -291,19 +294,19 @@ Panel {
           spacing: 2
           Row {
             width: parent.width
-            Text { width: parent.width * 0.14; text: "PID"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.bodySmall }
-            Text { width: parent.width * 0.46; text: "TOP CPU PROCESSES"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.bodySmall }
-            Text { width: parent.width * 0.16; text: "CPU"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.bodySmall; horizontalAlignment: Text.AlignRight }
-            Text { width: parent.width * 0.24; text: "MEMORY"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.bodySmall; horizontalAlignment: Text.AlignRight }
+            Text { width: parent.width * 0.14; text: "PID"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.body }
+            Text { width: parent.width * 0.46; text: "TOP CPU PROCESSES"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.body }
+            Text { width: parent.width * 0.16; text: "CPU"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.body; horizontalAlignment: Text.AlignRight }
+            Text { width: parent.width * 0.24; text: "MEMORY"; color: root.dim; font.family: root.family; font.pixelSize: Style.font.body; horizontalAlignment: Text.AlignRight }
           }
           Repeater {
             model: root.snap ? root.snap.processes : []
             delegate: Row {
               width: content.width
-              Text { width: parent.width * 0.14; text: modelData.pid; color: root.dim; font.family: root.family; font.pixelSize: Style.font.body }
-              Text { width: parent.width * 0.46; text: modelData.name; color: root.foreground; elide: Text.ElideRight; font.family: root.family; font.pixelSize: Style.font.body }
-              Text { width: parent.width * 0.16; text: modelData.cpu.toFixed(1) + "%"; color: root.load(root.foreground, modelData.cpu * 4); font.family: root.family; font.pixelSize: Style.font.body; horizontalAlignment: Text.AlignRight }
-              Text { width: parent.width * 0.24; text: root.bytes(modelData.mem); color: root.foreground; font.family: root.family; font.pixelSize: Style.font.body; horizontalAlignment: Text.AlignRight }
+              Text { width: parent.width * 0.14; text: modelData.pid; color: root.dim; font.family: root.family; font.pixelSize: Style.font.subtitle }
+              Text { width: parent.width * 0.46; text: modelData.name; color: root.foreground; elide: Text.ElideRight; font.family: root.family; font.pixelSize: Style.font.subtitle }
+              Text { width: parent.width * 0.16; text: modelData.cpu.toFixed(1) + "%"; color: root.load(root.foreground, modelData.cpu * 4); font.family: root.family; font.pixelSize: Style.font.subtitle; horizontalAlignment: Text.AlignRight }
+              Text { width: parent.width * 0.24; text: root.bytes(modelData.mem); color: root.foreground; font.family: root.family; font.pixelSize: Style.font.subtitle; horizontalAlignment: Text.AlignRight }
             }
           }
         }
@@ -316,9 +319,10 @@ Panel {
             width: parent.width
             Text {
               text: "MEMORY"
+              font.letterSpacing: 0.6
               color: root.dim
               font.family: root.family
-              font.pixelSize: Style.font.bodySmall
+              font.pixelSize: Style.font.body
             }
             Item { width: parent.width - memNow.implicitWidth - 70; height: 1 }
             Text {
@@ -326,7 +330,7 @@ Panel {
               text: root.snap ? root.bytes(root.snap.mem.used) + " / " + root.bytes(root.snap.mem.total) : "—"
               color: root.foreground
               font.family: root.family
-              font.pixelSize: Style.font.body
+              font.pixelSize: Style.font.subtitle
             }
           }
           Sparkline {
@@ -342,7 +346,7 @@ Panel {
               + "  ·  Swap " + root.bytes(root.snap.mem.swapUsed) : ""
             color: root.dim
             font.family: root.family
-            font.pixelSize: Style.font.bodySmall
+            font.pixelSize: Style.font.body
           }
         }
 
@@ -376,9 +380,9 @@ Panel {
             delegate: Column {
               width: (content.width - Style.spacing.panelGap) / 2
               spacing: 1
-              Text { text: modelData.t; color: root.dim; font.family: root.family; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
-              Text { text: modelData.v; color: root.foreground; font.family: root.family; font.pixelSize: Style.font.body; elide: Text.ElideRight; width: parent.width }
-              Text { text: modelData.d; color: root.dim; font.family: root.family; font.pixelSize: Style.font.bodySmall; elide: Text.ElideRight; width: parent.width }
+              Text { text: modelData.t; color: root.dim; font.family: root.family; font.pixelSize: Style.font.body; elide: Text.ElideRight; width: parent.width }
+              Text { text: modelData.v; color: root.foreground; font.family: root.family; font.pixelSize: Style.font.subtitle; elide: Text.ElideRight; width: parent.width }
+              Text { text: modelData.d; color: root.dim; font.family: root.family; font.pixelSize: Style.font.body; elide: Text.ElideRight; width: parent.width }
             }
           }
         }
@@ -387,7 +391,7 @@ Panel {
           text: root.snap ? root.snap.procCount + " processes" : "Sampling…"
           color: root.dim
           font.family: root.family
-          font.pixelSize: Style.font.bodySmall
+          font.pixelSize: Style.font.body
         }
       }
     }
