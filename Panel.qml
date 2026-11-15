@@ -167,12 +167,13 @@ Panel {
             }
           }
           Item { width: Style.spacing.lg; height: 1 }
-          Text {
+          KeyHint {
             id: hint
-            text: root.expanded ? "e  collapse" : "e  per-core"
-            color: root.dim
-            font.family: root.family
-            font.pixelSize: Style.font.body
+            keyName: "e"
+            label: root.expanded ? "collapse" : "per-core"
+            textColor: root.foreground
+            fontFamily: root.family
+            onActivated: root.toggleExpanded()
           }
         }
 
