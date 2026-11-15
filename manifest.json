@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "id": "io.github.rodrigondec.tmog",
   "name": "TMOG",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "author": "rodrigondec",
   "license": "MIT",
   "description": "A bar glance at what TMOG Task Manager shows: CPU, clock, temperature, GPU, top processes, memory, pressure, network and disk",
